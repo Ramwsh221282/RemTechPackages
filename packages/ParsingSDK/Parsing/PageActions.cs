@@ -19,6 +19,20 @@ public static class PageActions
                 
             return Maybe<IElementHandle>.None();
         }
+
+        public async Task<IElementHandle[]> GetElementsRetriable(string selectorQuery, int retryAmount = 30)
+        {
+            int currentAttempt = 0;
+            while (currentAttempt < retryAmount)
+            {
+                IElementHandle[] elements = await page.QuerySelectorAllAsync(selectorQuery);
+                if (elements.Length > 0) return elements;
+                await Task.Delay(TimeSpan.FromSeconds(1));
+                currentAttempt++;
+            }
+
+            return [];
+        }
         
         public async Task ScrollBottom()
         {
