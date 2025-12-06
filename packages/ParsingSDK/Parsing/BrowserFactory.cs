@@ -18,9 +18,28 @@ public sealed class BrowserFactory
             ],
             UserDataDir = null
         };
+        
+        try
+        {
+            return await Instantiate(options);
+        }
+        catch
+        {
+            await LoadBrowser();
+        }
+        
+        return await Instantiate(options);
+    }
 
+    private async Task<IBrowser> Instantiate(LaunchOptions options)
+    {
         IBrowser browser = await Puppeteer.LaunchAsync(options);
         browser.DefaultWaitForTimeout = 0;
         return browser;
+    }
+    
+    private async Task LoadBrowser()
+    {
+        await new BrowserFetcher().DownloadAsync();
     }
 }
