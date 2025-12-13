@@ -9,7 +9,7 @@ using RabbitMQ.Client.Events;
 
 namespace ParserSubscriber.Subscribers.RabbitMq;
 
-public delegate IConnection RabbitMqConnectionSource(CancellationToken ct = default);
+public delegate Task<IConnection> RabbitMqConnectionSource(CancellationToken ct = default);
 public delegate Task RabbitMqRequestReplySubscriberMessageHandler(BasicDeliverEventArgs ea, IChannel channel);
 
 public static class ParserSubscriberInjection
@@ -102,7 +102,7 @@ public sealed class RabbitMqRequestReplySubscriber : IParserSubscriber
             Routing key: {routingKey}
             """, logProperties);
 
-        await using IChannel channel = await RabbitMq(ct).CreateChannelAsync(cancellationToken: ct);
+        await using IChannel channel = await (await RabbitMq(ct)).CreateChannelAsync(cancellationToken: ct);
         await channel.ExchangeDeclareAsync(exchange: exchange, type: ExchangeType.Topic, durable: true, autoDelete: false, cancellationToken: ct);
         await channel.QueueDeclareAsync(queue: queue, durable: true, exclusive: false, autoDelete: false, cancellationToken: ct);
         await channel.QueueBindAsync(queue: queue, exchange: exchange, routingKey: routingKey, cancellationToken: ct);
@@ -130,7 +130,7 @@ public sealed class RabbitMqRequestReplySubscriber : IParserSubscriber
             """, logProperties);
 
         CreateChannelOptions channelOpts = new(publisherConfirmationsEnabled: true, publisherConfirmationTrackingEnabled: true);
-        ResponseQueueChannel = await RabbitMq(ct).CreateChannelAsync(channelOpts, ct);
+        ResponseQueueChannel = await (await RabbitMq(ct)).CreateChannelAsync(channelOpts, ct);
         await ResponseQueueChannel.ExchangeDeclareAsync(exchange: exchange, type: ExchangeType.Topic, cancellationToken: ct);
         await ResponseQueueChannel.QueueDeclareAsync(queue: queue, cancellationToken: ct);
         await ResponseQueueChannel.QueueBindAsync(queue: queue, exchange: exchange, routingKey: routingKey, cancellationToken: ct);
