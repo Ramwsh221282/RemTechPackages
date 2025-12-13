@@ -9,6 +9,8 @@
 ./idea
 idea/
 
+.vscode
+
 nuget.config
 
 # User-specific files
