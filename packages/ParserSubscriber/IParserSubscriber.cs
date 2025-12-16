@@ -1,4 +1,4 @@
-using ParserSubscriber.Subscribers.RabbitMq;
+using ParserSubscriber.SubscribtionContext;
 
 namespace ParserSubscriber;
 

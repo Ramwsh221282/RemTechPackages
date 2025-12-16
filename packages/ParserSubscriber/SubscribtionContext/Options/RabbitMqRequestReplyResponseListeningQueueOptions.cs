@@ -1,4 +1,4 @@
-namespace ParserSubscriber.Subscribers.RabbitMq;
+namespace ParserSubscriber.SubscribtionContext.Options;
 
 public sealed class RabbitMqRequestReplyResponseListeningQueueOptions
 {
