@@ -1,5 +1,4 @@
-﻿using ParsingSDK.Parsing;
-using PuppeteerSharp;
+﻿using PuppeteerSharp;
 
 namespace AvitoFirewallBypass;
 
@@ -7,15 +6,26 @@ public sealed class AvitoBypassFirewallLazy(IPage page, IAvitoBypassFirewall ori
 {
     public async Task<bool> Bypass()
     {
-        if (await FirewallDoesNotExist())
-            return true;
-        await origin.Bypass();
-        return await FirewallDoesNotExist();
+        if (await FireWallExists())
+        {
+            await origin.Bypass();
+            return await FireWallExists();
+        }
+        
+        return true;
     }
 
-    private async Task<bool> FirewallDoesNotExist()
+    private async Task<bool> FireWallExists()
     {
-        Maybe<IElementHandle> firewall = await page.GetElementRetriable(".firewall-title", retryAmount: 10);
-        return firewall.HasValue == false;
+        const string javaScript = @"
+        () => new Promise(resolve => {
+            setTimeout(() => {
+                const selector = document.querySelector('div[class=""firewall-container""]');
+                resolve(selector === null);
+            }, 2000);
+        })";
+
+        bool exists = await page.EvaluateFunctionAsync<bool>(javaScript);
+        return !exists;
     }
 }
