@@ -7,8 +7,9 @@ public static class ParsingDependencyInjection
 {
     extension(IServiceCollection services)
     {
-        public void RegisterParserDependencies()
+        public void RegisterParserDependencies(Action<IServiceCollection>? scrapingOptionsConfiguration = null)
         {
+            scrapingOptionsConfiguration?.Invoke(services);
             services.AddBrowserFactory();
         }
         

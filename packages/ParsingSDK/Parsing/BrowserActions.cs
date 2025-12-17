@@ -29,4 +29,13 @@ public static class BrowserActions
             await browser.DisposeAsync();
         }
     } 
+    
+    extension(BrowserFactory factory)
+    {
+        public async Task<IBrowser> Recreate(IBrowser oldBrowser)
+        {
+            await oldBrowser.DestroyAsync();
+            return await factory.ProvideBrowser();
+        }
+    }
 }

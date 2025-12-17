@@ -1,34 +1,28 @@
-﻿using PuppeteerSharp;
+﻿using Microsoft.Extensions.Options;
+using PuppeteerSharp;
 
 namespace ParsingSDK.Parsing;
 
-public sealed class BrowserFactory
+public sealed class BrowserFactory(IOptions<ScrapingBrowserOptions> options)
 {
-    public async Task<IBrowser> ProvideBrowser(bool headless = true)
+    private ScrapingBrowserOptions External { get; } = options.Value;
+    
+    public async Task<IBrowser> ProvideBrowser()
     {
-        LaunchOptions options = new LaunchOptions
-        {
-            Headless = headless,
-            Args = 
-            [
-                "--no-sandbox",
-                "--disable-gpu",
-                "--disable-dev-shm-usage",
-                "--no-zygote",
-            ],
-            UserDataDir = null
-        };
+        LaunchOptions launchOptions = new LaunchOptions();
+        launchOptions.ConfigureBasic();
+        launchOptions.ApplyFromExternalOptions(External);
         
         try
         {
-            return await Instantiate(options);
+            return await Instantiate(launchOptions);
         }
         catch
         {
             await LoadBrowser();
         }
         
-        return await Instantiate(options);
+        return await Instantiate(launchOptions);
     }
 
     private async Task<IBrowser> Instantiate(LaunchOptions options)
@@ -40,6 +34,7 @@ public sealed class BrowserFactory
     
     private async Task LoadBrowser()
     {
-        await new BrowserFetcher().DownloadAsync();
+        BrowserFetcher fetcher = new(SupportedBrowser.Chromium);
+        await fetcher.DownloadAsync();
     }
 }
