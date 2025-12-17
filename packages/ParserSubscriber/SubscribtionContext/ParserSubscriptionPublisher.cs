@@ -34,15 +34,15 @@ public sealed class ParserSubscriptionPublisher(
         await channel.ExchangeDeclareAsync(
             exchange,
             "topic",
-            true,
-            false
+            durable: true,
+            autoDelete: false
         );
 
         await channel.QueueDeclareAsync(
             queue,
-            true,
-            false,
-            false
+            durable: true,
+            exclusive: false,
+            autoDelete: false
         );
 
         await channel.QueueBindAsync(
@@ -51,7 +51,7 @@ public sealed class ParserSubscriptionPublisher(
             routingKey
         );
 
-        object payload = new { parser_id = subscription.Id };
+        object payload = new { parser_id = subscription.Id, parser_type = subscription.Type, parser_domain = subscription.Domain };
         string jsonPayload = JsonSerializer.Serialize(payload);
         ReadOnlyMemory<byte> bytesPayload = Encoding.UTF8.GetBytes(jsonPayload);
 

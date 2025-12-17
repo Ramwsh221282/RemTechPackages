@@ -41,59 +41,9 @@ public sealed class RabbitMqRequestReplySubscriber : IParserSubscriber
         RerpOpts.ParserInfo(out var domain, out var type);
         await CreateTemporaryResponseListeningQueue(ct);
         ParserSubscribtion subscribtion = new(Guid.NewGuid(), domain, type, DateTime.UtcNow);
-        await PublishSubscriptionMessage(subscribtion, ct);
+        await Publisher.Publish(subscribtion);
         await Tcs.Task;
         return subscribtion;
-    }
-
-    private async Task PublishSubscriptionMessage(ParserSubscribtion subscribtion, CancellationToken ct)
-    {
-        Logger?.Information("Publishing subscribtion message");
-        RerpOpts.ParserInfo(out var domain, out var type);
-
-        var id = subscribtion.Id;
-        var parser_domain = domain;
-        var parser_type = type;
-
-        Logger?.Information(
-            """
-            Subscribtion message info:
-            Id: {id}
-            Parser domain: {parser_domain}
-            Parser type: {parser_type}
-            """, id, parser_domain, parser_type);
-
-        object payload = new
-        {
-            id,
-            parser_domain,
-            parser_type
-        };
-
-        var json = JsonSerializer.Serialize(payload);
-        ReadOnlyMemory<byte> message = Encoding.UTF8.GetBytes(json);
-
-        RerpOpts.RequestQueueInfo(out var queue, out var exchange, out var routingKey);
-        object[] logProperties = [queue, exchange, routingKey];
-
-        Logger?.Information(
-            """
-            Request queue settings info:
-            Queue: {queue}
-            Exchange: {exchange}
-            Routing key: {routingKey}
-            """, logProperties);
-
-        await using var channel = await (await RabbitMq(ct)).CreateChannelAsync(cancellationToken: ct);
-        await channel.ExchangeDeclareAsync(exchange, ExchangeType.Topic, true, false, cancellationToken: ct);
-        await channel.QueueDeclareAsync(queue, true, false, false, cancellationToken: ct);
-        await channel.QueueBindAsync(queue, exchange, routingKey, cancellationToken: ct);
-
-        BasicProperties publishProperties = new() { Persistent = true };
-
-        await channel.BasicPublishAsync(exchange, routingKey, true, publishProperties, message, ct);
-
-        Logger?.Information("Subscribtion message published");
     }
 
     private async Task CreateTemporaryResponseListeningQueue(CancellationToken ct)
@@ -113,8 +63,8 @@ public sealed class RabbitMqRequestReplySubscriber : IParserSubscriber
 
         CreateChannelOptions channelOpts = new(true, true);
         ResponseQueueChannel = await (await RabbitMq(ct)).CreateChannelAsync(channelOpts, ct);
-        await ResponseQueueChannel.ExchangeDeclareAsync(exchange, ExchangeType.Topic, cancellationToken: ct);
-        await ResponseQueueChannel.QueueDeclareAsync(queue, cancellationToken: ct);
+        await ResponseQueueChannel.ExchangeDeclareAsync(exchange, ExchangeType.Topic, durable: true, autoDelete: false, cancellationToken: ct);
+        await ResponseQueueChannel.QueueDeclareAsync(queue, durable: false, exclusive: false, autoDelete: false, cancellationToken: ct);
         await ResponseQueueChannel.QueueBindAsync(queue, exchange, routingKey, cancellationToken: ct);
 
         Logger?.Information("Temporary response listener queue created");
@@ -156,7 +106,6 @@ public sealed class RabbitMqRequestReplySubscriber : IParserSubscriber
         RerpOpts.ResponseQueueInfo(out var queue, out var exchange, out var routingKey);
         await ResponseQueueChannel.QueueUnbindAsync(queue, exchange, routingKey);
         await ResponseQueueChannel.QueuePurgeAsync(queue);
-        await ResponseQueueChannel.ExchangeDeleteAsync(exchange);
         Consumer.ReceivedAsync -= EventHandler;
         await ResponseQueueChannel.DisposeAsync();
     }
