@@ -9,7 +9,7 @@ public static class LaunchOptionsConfigurationImplementation
         public void ApplyFromExternalOptions(ScrapingBrowserOptions externalOptions)
         {
             options.Headless = externalOptions.Headless;
-            if (!string.IsNullOrEmpty(externalOptions.BrowserPath))
+            if (!string.IsNullOrWhiteSpace(externalOptions.BrowserPath))
                 options.ExecutablePath = externalOptions.BrowserPath;
         }
         
